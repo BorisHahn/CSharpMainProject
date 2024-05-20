@@ -25,13 +25,13 @@ namespace UnitBrains.Player
                 return;
             } 
             
-            IncreaseTemperature();
-            
             for (int i = 0; i <= currentTemperature; i++)
             {
                 var projectile = CreateProjectile(forTarget);
                 AddProjectileToList(projectile, intoList);
             }
+
+            IncreaseTemperature();
             ///////////////////////////////////////
         }
 
@@ -46,9 +46,22 @@ namespace UnitBrains.Player
             // Homework 1.4 (1st block, 4rd module)
             ///////////////////////////////////////
             List<Vector2Int> result = GetReachableTargets();
-            while (result.Count > 1)
+            (float, int) minTargetDistanceValue = (float.MaxValue, 0);
+            if (result.Count > 1 ) 
             {
-                result.RemoveAt(result.Count - 1);
+                for (var i = 0; i < result.Count; i++)
+                {
+                    float targetDistance = DistanceToOwnBase(result[i]);
+                    
+                    if (targetDistance < minTargetDistanceValue.Item1)
+                    {
+                        minTargetDistanceValue.Item1 = targetDistance;
+                        minTargetDistanceValue.Item2 = i;
+                    }
+                }
+                var priorityTarget = result[minTargetDistanceValue.Item2];
+                result.Clear();
+                result.Add(priorityTarget);
             }
             return result;
             ///////////////////////////////////////
