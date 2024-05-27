@@ -17,7 +17,7 @@ namespace UnitBrains.Player
         private float _temperature = 0f;
         private float _cooldownTime = 0f;
         private bool _overheated;
-        public List<Vector2Int> _priorityNotReachableTargets;
+        private List<Vector2Int> _priorityNotReachableTargets;
 
         public SecondUnitBrain()
         {
