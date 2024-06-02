@@ -17,12 +17,7 @@ namespace UnitBrains.Player
         private float _temperature = 0f;
         private float _cooldownTime = 0f;
         private bool _overheated;
-        private List<Vector2Int> _priorityNotReachableTargets;
-
-        public SecondUnitBrain()
-        {
-            _priorityNotReachableTargets = new List<Vector2Int>();
-        }
+        private List<Vector2Int> _priorityNotReachableTargets = new List<Vector2Int>();
 
         protected override void GenerateProjectiles(Vector2Int forTarget, List<BaseProjectile> intoList)
         {
@@ -49,16 +44,8 @@ namespace UnitBrains.Player
         public override Vector2Int GetNextStep()
         {
             Vector2Int targetPosition;
-            List<Vector2Int> reachableTargets = GetReachableTargets();
-            if (reachableTargets.Contains(_priorityNotReachableTargets.LastOrDefault()))
-            {
-                targetPosition = unit.Pos;
-            }
-            else
-            {
-                targetPosition = unit.Pos.CalcNextStepTowards(_priorityNotReachableTargets.LastOrDefault());
-            }
-            return targetPosition;
+            targetPosition = _priorityNotReachableTargets.Count > 0 ? _priorityNotReachableTargets[0] : unit.Pos;
+            return IsTargetInRange(targetPosition) ? unit.Pos : unit.Pos.CalcNextStepTowards(targetPosition);
         }
 
         protected override List<Vector2Int> SelectTargets()
@@ -67,8 +54,9 @@ namespace UnitBrains.Player
             // Homework 1.4 (1st block, 4rd module)
             ///////////////////////////////////////
 
-            var botPlayerId = RuntimeModel.BotPlayerId;
-            var baseCoords = runtimeModel.RoMap.Bases[botPlayerId];
+            var iD = IsPlayerUnitBrain ? RuntimeModel.BotPlayerId : RuntimeModel.BotPlayerId;
+            var baseCoords = runtimeModel.RoMap.Bases[iD];
+
             List<Vector2Int> allTargets = GetAllTargets().ToList();
             List<Vector2Int> reachableTargets = GetReachableTargets();
             (float, int) minTargetDistanceValue = (float.MaxValue, 0);
