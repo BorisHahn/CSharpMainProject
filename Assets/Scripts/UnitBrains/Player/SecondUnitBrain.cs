@@ -4,6 +4,7 @@ using System.Linq;
 using Model;
 using Model.Runtime;
 using Model.Runtime.Projectiles;
+using Unity.Plastic.Newtonsoft.Json;
 using UnityEngine;
 using Utilities;
 
@@ -17,7 +18,17 @@ namespace UnitBrains.Player
         private float _temperature = 0f;
         private float _cooldownTime = 0f;
         private bool _overheated;
-        private List<Vector2Int> _priorityNotReachableTargets = new List<Vector2Int>();
+        private List<Vector2Int> _priorityTargets = new List<Vector2Int>();
+
+        public static int unitСounter = 0;
+        private int unitNumber;
+        private const int maxTargetsCount = 3;
+
+        public SecondUnitBrain()
+        {
+            unitNumber = unitСounter;
+            unitСounter++;
+        }
 
         protected override void GenerateProjectiles(Vector2Int forTarget, List<BaseProjectile> intoList)
         {
@@ -44,7 +55,7 @@ namespace UnitBrains.Player
         public override Vector2Int GetNextStep()
         {
             Vector2Int targetPosition;
-            targetPosition = _priorityNotReachableTargets.Count > 0 ? _priorityNotReachableTargets[0] : unit.Pos;
+            targetPosition = _priorityTargets.Count > 0 ? _priorityTargets[0] : unit.Pos;
             return IsTargetInRange(targetPosition) ? unit.Pos : unit.Pos.CalcNextStepTowards(targetPosition);
         }
 
@@ -53,35 +64,36 @@ namespace UnitBrains.Player
             ///////////////////////////////////////
             // Homework 1.4 (1st block, 4rd module)
             ///////////////////////////////////////
-
+            //Debug.Log($"Номер юнита - {unitNumber}");
             var iD = IsPlayerUnitBrain ? RuntimeModel.BotPlayerId : RuntimeModel.BotPlayerId;
             var baseCoords = runtimeModel.RoMap.Bases[iD];
 
+            _priorityTargets.Clear();
             List<Vector2Int> allTargets = GetAllTargets().ToList();
             List<Vector2Int> reachableTargets = GetReachableTargets();
-            (float, int) minTargetDistanceValue = (float.MaxValue, 0);
-            if (allTargets.Count > 0 ) 
+            List<Vector2Int> closestTargets = new List<Vector2Int>();
+
+            SortByDistanceToOwnBase(allTargets);
+
+            var closestCount = maxTargetsCount > allTargets.Count ? allTargets.Count : maxTargetsCount;
+            closestTargets.AddRange(allTargets.GetRange(0, closestCount));
+
+            var targetIndex = unitNumber % maxTargetsCount;
+            var indexIsExist = targetIndex < closestTargets.Count && targetIndex > 0;
+            if (indexIsExist)
             {
-                for (var i = 0; i < allTargets.Count; i++)
-                {
-                    float targetDistance = DistanceToOwnBase(allTargets[i]);
-                    
-                    if (targetDistance < minTargetDistanceValue.Item1)
-                    {
-                        minTargetDistanceValue.Item1 = targetDistance;
-                        minTargetDistanceValue.Item2 = i;
-                    }
-                }
-                var priorityTarget = allTargets[minTargetDistanceValue.Item2];
-                _priorityNotReachableTargets.Clear();
-                _priorityNotReachableTargets.Add(priorityTarget);
+                _priorityTargets.Add(closestTargets[targetIndex]);
+            }
+            else if (closestTargets.Count > 0)
+            {
+                _priorityTargets.Add(closestTargets[0]);
             }
             else
             {
-                _priorityNotReachableTargets.Add(baseCoords);
+                _priorityTargets.Add(baseCoords);
             }
-
-            return reachableTargets.Contains(_priorityNotReachableTargets.LastOrDefault()) ? _priorityNotReachableTargets : reachableTargets;
+       
+            return reachableTargets.Contains(_priorityTargets.LastOrDefault()) ? _priorityTargets : reachableTargets;
             ///////////////////////////////////////
         }
 
