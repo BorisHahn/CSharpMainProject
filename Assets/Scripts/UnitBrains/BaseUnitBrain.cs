@@ -4,6 +4,7 @@ using Model;
 using Model.Runtime.Projectiles;
 using Model.Runtime.ReadOnly;
 using UnitBrains.Pathfinding;
+using Unity.Plastic.Newtonsoft.Json;
 using UnityEngine;
 using Utilities;
 using Unit = Model.Runtime.Unit;
@@ -38,9 +39,10 @@ namespace UnitBrains
 
             var target = runtimeModel.RoMap.Bases[
                 IsPlayerUnitBrain ? RuntimeModel.BotPlayerId : RuntimeModel.PlayerId];
+            _activePath = new BgUnitPath(runtimeModel, unit.Pos, target);
 
-            _activePath = new DummyUnitPath(runtimeModel, unit.Pos, target);
-            return _activePath.GetNextStepFrom(unit.Pos);
+            var step = _activePath.GetNextStepFrom(unit.Pos);
+            return step;
         }
 
         public List<BaseProjectile> GetProjectiles()

@@ -56,7 +56,7 @@ namespace UnitBrains.Player
         {
             Vector2Int targetPosition;
             targetPosition = _priorityTargets.Count > 0 ? _priorityTargets[0] : unit.Pos;
-            return IsTargetInRange(targetPosition) ? unit.Pos : unit.Pos.CalcNextStepTowards(targetPosition);
+            return IsTargetInRange(targetPosition) ? unit.Pos : base.GetNextStep();
         }
 
         protected override List<Vector2Int> SelectTargets()
