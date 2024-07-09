@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using Model;
 using UnityEngine;
 
@@ -8,11 +9,13 @@ namespace UnitBrains.Pathfinding
     public class BgUnitPath : BaseUnitPath
     {
         private int[] dx = { -1, 0, 1, 0 };
-        private int[] dy = { 0, -1, 0, 1 };
+        private int[] dy = { 0, 1, 0, -1 };
         private Vector2Int _startPoint;
         private Vector2Int _endPoint;
-        private const int MaxLength = 100;
-        
+        private bool _isTarget;
+        private bool _isEnemyUnitClose;
+        private Node _nextToEnemyUnit;
+
         public BgUnitPath(IReadOnlyRuntimeModel runtimeModel, Vector2Int startPoint, Vector2Int endPoint)
             : base(runtimeModel, startPoint, endPoint)
         {
@@ -22,32 +25,16 @@ namespace UnitBrains.Pathfinding
 
         protected override void Calculate()
         {
-            if (FindPath() != null)
-            {
-                path = FindPath().ToArray();
-            } 
-            else
-            {
-                path = null;
-            }
-
-            if (path == null)
-            {
-                path = new Vector2Int[] { StartPoint };
-            }
-        }
-
-        public List<Vector2Int> FindPath()
-        {
-
             Node startNode = new Node(_startPoint);
             Node targetNode = new Node(_endPoint);
             List<Node> openList = new List<Node>() { startNode };
             List<Node> closedList = new List<Node>();
-          
-            while (openList.Count > 0)
-            {
 
+            int counter = 0;
+            int maxCount = runtimeModel.RoMap.Width * runtimeModel.RoMap.Height;
+
+            while (openList.Count > 0 && counter++ < maxCount)
+            {
                 Node currentNode = openList[0];
 
                 foreach (var node in openList)
@@ -59,17 +46,10 @@ namespace UnitBrains.Pathfinding
                 openList.Remove(currentNode);
                 closedList.Add(currentNode);
 
-                if (currentNode.Point.x == targetNode.Point.x && currentNode.Point.y == targetNode.Point.y || openList.Count >= MaxLength)
+                if (_isTarget)
                 {
-                    List<Vector2Int> path = new List<Vector2Int>();
-                    while (currentNode != null)
-                    {
-                        path.Add(currentNode.Point);
-                        currentNode = currentNode.Parent;
-                    }
-
-                    path.Reverse();
-                    return path;
+                    path = FindPath(currentNode);
+                    return;
                 }
 
                 for (int i = 0; i < dx.Length; i++)
@@ -78,33 +58,61 @@ namespace UnitBrains.Pathfinding
                     int newY = currentNode.Point.y + dy[i];
                     var newPoint = new Vector2Int(newX, newY);
 
-                    if (!IsValid(newPoint) && newPoint != _endPoint)
-                        continue;
+                    if (newPoint == targetNode.Point)
+                        _isTarget = true;
 
-                    Node neighbor = new Node(newPoint);
-
-                    if (closedList.Contains(neighbor))
-                        continue;
-
-                    neighbor.Parent = currentNode;
-                    neighbor.CalculateEstimate(targetNode.Point.x, targetNode.Point.y);
-                    neighbor.CalculateValue();
-
-                    if (!openList.Contains(neighbor))
+                    if (IsValid(newPoint) || _isTarget)
                     {
+                        Node neighbor = new Node(newPoint);
+
+                        if (closedList.Contains(neighbor))
+                            continue;
+
+                        neighbor.Parent = currentNode;
+                        neighbor.CalculateEstimate(targetNode.Point.x, targetNode.Point.y);
+                        neighbor.CalculateValue();
                         openList.Add(neighbor);
+                    }
+                    if (CheckCollisionWithEnemy(newPoint) && !_isEnemyUnitClose)
+                    {
+                        _isEnemyUnitClose = true;
+                        _nextToEnemyUnit = currentNode;
                     }
                 }
             }
+            if (_isEnemyUnitClose)
+            {
+                path = FindPath(_nextToEnemyUnit);
+                return;
+            }
 
-            return null;
+            path = new Vector2Int[] { startNode.Point };
         }
-        
+
+        private Vector2Int[] FindPath(Node node)
+        {
+            List<Vector2Int> path = new();
+
+            while (node != null)
+            {
+                path.Add(node.Point);
+                node = node.Parent;
+            }
+
+            path.Reverse();
+            return path.ToArray();
+        }
+
         private bool IsValid(Vector2Int point)
         {
-            bool containsY = point.y >= 0 && point.y < runtimeModel.RoMap.Height;
-            bool containsX = point.x >= 0 && point.x < runtimeModel.RoMap.Width;
-            return containsX && containsY && runtimeModel.IsTileWalkable(point);
+            return runtimeModel.IsTileWalkable(point);
+        }
+
+        private bool CheckCollisionWithEnemy(Vector2Int newPos)
+        {
+            var botUnitPositions = runtimeModel.RoBotUnits.Select(u => u.Pos).Where(u => u == newPos);
+
+            return botUnitPositions.Any();
         }
     }
 
