@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using Assets.Scripts.UnitBrains;
 using Model;
 using Model.Runtime.Projectiles;
 using UnityEngine;
@@ -20,6 +21,19 @@ namespace UnitBrains.Player
             var distanceA = DistanceToOwnBase(a);
             var distanceB = DistanceToOwnBase(b);
             return distanceA.CompareTo(distanceB);
+        }
+
+        public override Vector2Int GetNextStep()
+        {
+            PathAndTargetCoordinator pathAndTargetCoordinator = PathAndTargetCoordinator.GetInstance();
+            //pathAndTargetCoordinator.checkCoords(777);
+            return base.GetNextStep();
+        }
+
+        ~DefaultPlayerUnitBrain()
+        {
+            PathAndTargetCoordinator pathAndTargetCoordinator = PathAndTargetCoordinator.GetInstance();
+            pathAndTargetCoordinator.Dispose();
         }
     }
 }
