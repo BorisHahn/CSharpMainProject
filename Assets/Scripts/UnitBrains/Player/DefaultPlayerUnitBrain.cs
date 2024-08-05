@@ -26,7 +26,18 @@ namespace UnitBrains.Player
         public override Vector2Int GetNextStep()
         {
             PathAndTargetCoordinator pathAndTargetCoordinator = PathAndTargetCoordinator.GetInstance();
-            //pathAndTargetCoordinator.checkCoords(777);
+            Vector2Int? priorityTarget = pathAndTargetCoordinator.PriorityTargetPosition;
+            Vector2Int? priorityPosition = pathAndTargetCoordinator.PrioritySelfPosition;
+            
+            if (priorityTarget.HasValue)
+            {
+                return priorityTarget.Value;
+            }
+
+            if (priorityPosition.HasValue)
+            {
+                return priorityPosition.Value;
+            }
             return base.GetNextStep();
         }
 

@@ -12,7 +12,7 @@ using Model.Runtime.ReadOnly;
 
 namespace Assets.Scripts.UnitBrains
 {
-    public class PathAndTargetCoordinator : BaseUnitBrain
+    public class PathAndTargetCoordinator
     {
         private static PathAndTargetCoordinator _instance;
 
@@ -20,6 +20,9 @@ namespace Assets.Scripts.UnitBrains
         private TimeUtil _timeUtil;
         private Vector2Int? _priorityTargetPosition = null;
         private Vector2Int? _prioritySelfPosition = null;
+
+        public Vector2Int? PriorityTargetPosition { get => _priorityTargetPosition; }
+        public Vector2Int? PrioritySelfPosition { get => _prioritySelfPosition; }
 
         private PathAndTargetCoordinator()
         {
@@ -43,59 +46,57 @@ namespace Assets.Scripts.UnitBrains
                                  Иначе, рекомендуемая точка находится на расстоянии выстрела от ближайшего к базе врага. 
         */
 
-        public void getPriorityTargetPosition(float deltaTime, BaseUnitBrain unitBrain)
+        public void getPriorityTargetPosition(float deltaTime)
         {
-            List<Vector2Int> enemiesCloseToBase = getEnemiesCloseToBase(unitBrain);
+            List<Vector2Int> enemiesCloseToBase = getEnemiesCloseToBase();
             if (enemiesCloseToBase.Count > 0)
             {
-                _priorityTargetPosition =  enemiesCloseToBase[0];
+                _priorityTargetPosition = enemiesCloseToBase[0];
+                return;
             }
 
-            List<Vector2Int> enemiesWithLowHealth = getEnemiesWithLowHealth(unitBrain);
+            List<Vector2Int> enemiesWithLowHealth = getEnemiesWithLowHealth();
             if (enemiesWithLowHealth.Count > 0)
             {
-                _priorityTargetPosition =  enemiesWithLowHealth[0];
+                _priorityTargetPosition = enemiesWithLowHealth[0];
+                return;
+
             }
 
-            _priorityTargetPosition =  null;
+            _priorityTargetPosition = null;
         }
 
-        public void getPrioritySelfPosition(float deltaTime, BaseUnitBrain unitBrain)
+        public void getPrioritySelfPosition(float deltaTime)
         {
-            List<Vector2Int> enemiesCloseToBase = getEnemiesCloseToBase(unitBrain);
+            List<Vector2Int> enemiesCloseToBase = getEnemiesCloseToBase();
 
             if (enemiesCloseToBase.Count > 0)
             {
-                _prioritySelfPosition = unitBrain.IsPlayerUnitBrain
-                ? _runtimeModel.RoMap.Bases[RuntimeModel.PlayerId] + Vector2Int.right
-                : _runtimeModel.RoMap.Bases[RuntimeModel.BotPlayerId] + Vector2Int.left;
+                _prioritySelfPosition = _runtimeModel.RoMap.Bases[RuntimeModel.PlayerId] + Vector2Int.right;
+                return;
             }
 
             _prioritySelfPosition = null;
         }
 
-        private List<Vector2Int> getEnemiesCloseToBase(BaseUnitBrain unitBrain)
+        private List<Vector2Int> getEnemiesCloseToBase()
         {
-            Vector2Int unitBase = _runtimeModel.RoMap.Bases[unitBrain.IsPlayerUnitBrain ? RuntimeModel.BotPlayerId : RuntimeModel.PlayerId];
-            IEnumerable<IReadOnlyUnit> enemyUnits = unitBrain.IsPlayerUnitBrain
-                ? _runtimeModel.RoBotUnits
-                : _runtimeModel.RoPlayerUnits;
-
+            Vector2Int unitBase = _runtimeModel.RoMap.Bases[RuntimeModel.BotPlayerId];
+            IEnumerable<IReadOnlyUnit> enemyUnits = _runtimeModel.RoBotUnits;
+           
             int middleX = (int)Math.Round(_runtimeModel.RoMap.Width / 2f);
 
             return enemyUnits
-                .Where((enemy) => unitBrain.IsPlayerUnitBrain ? enemy.Pos.x < middleX : enemy.Pos.x > middleX)
+                .Where((enemy) => enemy.Pos.x < middleX)
                 .Select((enemy) => enemy.Pos)
                 .OrderBy((enemyPosition) => Vector2Int.Distance(enemyPosition, unitBase))
                 .ToList();
         }
 
-        private List<Vector2Int> getEnemiesWithLowHealth(BaseUnitBrain unitBrain)
+        private List<Vector2Int> getEnemiesWithLowHealth()
         {
-            IEnumerable<IReadOnlyUnit> enemyUnits = unitBrain.IsPlayerUnitBrain
-                ? _runtimeModel.RoBotUnits
-                : _runtimeModel.RoPlayerUnits;
-
+            IEnumerable<IReadOnlyUnit> enemyUnits = _runtimeModel.RoBotUnits;
+                
             return enemyUnits
                 .OrderBy((enemy) => enemy.Health)
                 .Select((enemy) => enemy.Pos)
